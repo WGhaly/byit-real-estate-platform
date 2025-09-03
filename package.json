@@ -1,0 +1,53 @@
+{
+  "name": "byit-real-estate-platform",
+  "version": "1.0.0",
+  "description": "Byit Real Estate Commission Management Platform - A comprehensive system for managing real estate brokers, commissions, and property development in Egypt",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "clean": "rm -rf node_modules backend/node_modules frontend/node_modules backend/dist frontend/.next",
+    "lint": "cd frontend && npm run lint",
+    "type-check": "cd frontend && npm run type-check && cd ../backend && npx tsc --noEmit",
+    "seed": "cd backend && npm run seed",
+    "db:migrate": "cd backend && npx prisma migrate dev",
+    "db:generate": "cd backend && npx prisma generate",
+    "db:studio": "cd backend && npx prisma studio",
+    "setup": "npm run install:all && npm run db:generate"
+  },
+  "keywords": [
+    "real-estate",
+    "commission-management",
+    "property-management",
+    "broker-management",
+    "egypt",
+    "nextjs",
+    "nodejs",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "WGhaly",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WGhaly/byit-real-estate-platform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WGhaly/byit-real-estate-platform/issues"
+  },
+  "homepage": "https://github.com/WGhaly/byit-real-estate-platform#readme",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
