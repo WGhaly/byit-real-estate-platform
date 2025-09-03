@@ -1,0 +1,49 @@
+{
+  "name": "byit-frontend",
+  "version": "1.0.0",
+  "description": "Byit Real Estate Admin Panel Frontend",
+  "scripts": {
+    "dev": "next dev -p 3003",
+    "build": "next build",
+    "start": "next start -p 3003",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@headlessui/react": "^2.1.2",
+    "@heroicons/react": "^2.1.5",
+    "axios": "^1.7.2",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.4.0",
+    "react-hook-form": "^7.52.1",
+    "@hookform/resolvers": "^3.8.0",
+    "zod": "^3.23.8",
+    "react-query": "^3.39.3",
+    "react-hot-toast": "^2.4.1",
+    "js-cookie": "^3.0.5",
+    "date-fns": "^3.6.0",
+    "recharts": "^2.12.7",
+    "react-dropzone": "^14.2.3",
+    "lucide-react": "^0.417.0",
+    "framer-motion": "^11.3.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/js-cookie": "^3.0.6",
+    "typescript": "^5.5.3",
+    "tailwindcss": "^3.4.6",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5",
+    "@tailwindcss/forms": "^0.5.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

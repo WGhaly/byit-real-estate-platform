@@ -1,0 +1,508 @@
+// This is your Prisma schema file for Byit Real Estate Platform
+// Egyptian Real Estate Commission Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// ENUMERATIONS
+// ================================
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATIONS_MANAGER
+  FINANCE_MANAGER
+}
+
+enum BrokerRole {
+  LICENSED_BROKER
+  TRAINEE_BROKER
+}
+
+enum KYCStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProjectType {
+  RESIDENTIAL
+  COMMERCIAL
+  MIXED_USE
+  VACATION_HOMES
+}
+
+enum ProjectStatus {
+  PLANNING
+  UNDER_CONSTRUCTION
+  READY
+  DELIVERED
+}
+
+enum CategoryType {
+  UNIT_TYPE
+  PROPERTY_TYPE
+  AMENITY_TYPE
+}
+
+enum UnitStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+enum ClientType {
+  INDIVIDUAL
+  CORPORATE
+}
+
+enum PaymentMethod {
+  CASH
+  MORTGAGE
+  INSTALLMENT
+}
+
+enum DealStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum CommissionStatus {
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+// ================================
+// USER ENTITIES
+// ================================
+
+model AdminUser {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  password            String
+  firstName           String
+  lastName            String
+  role                AdminRole
+  isActive            Boolean   @default(true)
+  mustChangePassword  Boolean   @default(true)
+  lastLogin           DateTime?
+  phone               String?
+  department          String?
+  jobTitle            String?
+  sessionTokens       String[]  @default([])
+  lastPasswordChange  DateTime  @default(now())
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  createdBy           String?
+
+  // Relations
+  createdDevelopers   Developer[] @relation("AdminCreatedDeveloper")
+  createdProjects     Project[]   @relation("AdminCreatedProject")
+  approvedDeals       Deal[]      @relation("AdminApprovedDeal")
+  rejectedDeals       Deal[]      @relation("AdminRejectedDeal")
+
+  @@map("admin_users")
+}
+
+model BrokerUser {
+  id               String      @id @default(uuid())
+  email            String      @unique
+  password         String
+  firstName        String
+  lastName         String
+  phone            String
+  role             BrokerRole
+  kycStatus        KYCStatus   @default(PENDING)
+  isActive         Boolean     @default(true)
+  licenseNumber    String?
+  licenseExpiry    DateTime?
+  brokerageCompany String?
+  experienceYears  Int?
+  totalDeals       Int         @default(0)
+  totalCommissions Decimal     @default(0) @db.Decimal(15, 2)
+  successRate      Decimal?    @db.Decimal(5, 2)
+  averageRating    Decimal?    @db.Decimal(3, 2)
+  lastLogin        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  // Relations
+  deals       Deal[]
+  commissions Commission[]
+
+  @@map("broker_users")
+}
+
+// ================================
+// REAL ESTATE ENTITIES
+// ================================
+
+model Developer {
+  id                     String   @id @default(uuid())
+  name                   String   @unique
+  description            String?
+  establishedYear        Int?
+  licenseNumber          String?
+  website                String?
+  email                  String
+  phone                  String
+  headquarters           String?
+  operatingCities        String[] @default([])
+  certifications         String[] @default([])
+  awards                 String[] @default([])
+  logo                   String?
+  images                 String[] @default([])
+  brochures              String[] @default([])
+
+  // Commission Settings - Three commission fields
+  actualCommissionRate   Decimal? @db.Decimal(5, 2)
+  communicatedCommission Decimal? @db.Decimal(5, 2)
+  brokerCommissionRate   Decimal? @db.Decimal(5, 2)
+
+  // Contact Information
+  salesContactName       String?
+  salesContactPhone      String?
+  salesContactEmail      String?
+  backupContactPhone     String?
+  contactNotes           String?
+
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  createdBy              String?
+
+  // Relations
+  projects    Project[]
+  createdByAdmin AdminUser? @relation("AdminCreatedDeveloper", fields: [createdBy], references: [id])
+
+  @@map("developers")
+}
+
+model Project {
+  id                      String        @id @default(uuid())
+  name                    String
+  description             String?
+  location                String
+  address                 String?
+  coordinates             String? // lat,lng format
+  projectType             ProjectType
+  
+  // Unit Information
+  totalUnits              Int?
+  availableUnits          Int?
+  soldUnits               Int?
+  priceRange              String? // "1M - 5M EGP"
+  paymentPlans            String[] @default([])
+  
+  // Project Status & Timeline
+  status                  ProjectStatus
+  launchDate              DateTime?
+  completionDate          DateTime?
+  handoverDate            DateTime?
+  
+  // Marketing Materials
+  images                  String[] @default([])
+  brochureUrl             String?
+  virtualTourUrl          String?
+  amenities               String[] @default([])
+  
+  // Commission Structure - Three commission fields
+  actualCommissionRate    Decimal? @db.Decimal(5, 2)
+  communicatedCommission  Decimal? @db.Decimal(5, 2)
+  brokerCommissionRate    Decimal? @db.Decimal(5, 2)
+  
+  // Sales Contact
+  salesContactName        String?
+  salesContactPhone       String?
+  salesContactEmail       String?
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  createdBy               String?
+  developerId             String
+
+  // Relations
+  developer             Developer             @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  categories            ProjectCategory[]
+  categoryUnitTypes     ProjectCategoryUnitType[]
+  units                 Unit[]
+  deals                 Deal[]
+  createdByAdmin        AdminUser?           @relation("AdminCreatedProject", fields: [createdBy], references: [id])
+
+  @@unique([name, developerId])
+  @@map("projects")
+}
+
+model Category {
+  id           String       @id @default(uuid())
+  name         String       @unique
+  categoryType CategoryType
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  projects     ProjectCategory[]
+  units        Unit[]
+
+  @@map("categories")
+}
+
+model ProjectCategory {
+  id                      String   @id @default(uuid())
+  projectId               String
+  categoryId              String
+  isEnabled               Boolean  @default(true)
+  
+  // Three commission fields
+  actualCommissionRate    Decimal? @db.Decimal(5, 2)
+  communicatedCommission  Decimal? @db.Decimal(5, 2)
+  brokerCommissionRate    Decimal? @db.Decimal(5, 2)
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  createdBy               String?
+
+  // Relations
+  project     Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    Category                   @relation(fields: [categoryId], references: [id])
+  unitTypes   ProjectCategoryUnitType[]
+
+  @@unique([projectId, categoryId])
+  @@map("project_categories")
+}
+
+model UnitType {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g., "Studio", "1BR", "2BR", "Penthouse"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  units           Unit[]
+  projectCategories ProjectCategoryUnitType[]
+
+  @@map("unit_types")
+}
+
+model ProjectCategoryUnitType {
+  id                      String   @id @default(uuid())
+  projectId               String
+  categoryId              String
+  unitTypeId              String
+  isEnabled               Boolean  @default(true)
+  
+  // Single price field for this unit type in this project
+  price                   Decimal? @db.Decimal(15, 2)
+  
+  // Three commission fields
+  actualCommissionRate    Decimal? @db.Decimal(5, 2)
+  communicatedCommission  Decimal? @db.Decimal(5, 2)
+  brokerCommissionRate    Decimal? @db.Decimal(5, 2)
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  createdBy               String?
+
+  // Relations
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category  ProjectCategory @relation(fields: [projectId, categoryId], references: [projectId, categoryId], onDelete: Cascade)
+  unitType  UnitType    @relation(fields: [unitTypeId], references: [id])
+
+  @@unique([projectId, categoryId, unitTypeId])
+  @@map("project_category_unit_types")
+}
+
+model Unit {
+  id          String     @id @default(uuid())
+  unitNumber  String
+  floor       Int?
+  size        Decimal?   @db.Decimal(10, 2) // sq ft/meters
+  bedrooms    Int?
+  bathrooms   Int?
+  price       Decimal    @db.Decimal(15, 2)
+  currency    String     @default("EGP")
+  status      UnitStatus @default(AVAILABLE)
+  features    String[]   @default([])
+  images      String[]   @default([])
+  floorPlan   String?
+  
+  projectId   String
+  categoryId  String?
+  unitTypeId  String?
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category  Category? @relation(fields: [categoryId], references: [id])
+  unitType  UnitType? @relation(fields: [unitTypeId], references: [id])
+  deals     Deal[]
+
+  @@unique([unitNumber, projectId])
+  @@map("units")
+}
+
+// ================================
+// DEAL & COMMISSION ENTITIES
+// ================================
+
+model Deal {
+  id                    String        @id @default(uuid())
+  dealNumber            String        @unique // auto-generated
+  
+  // Participants
+  brokerId              String
+  projectId             String
+  unitId                String?
+  
+  // Client Information
+  clientName            String
+  clientEmail           String?
+  clientPhone           String
+  clientNationality     String?
+  clientType            ClientType
+  
+  // Deal Details
+  dealValue             Decimal       @db.Decimal(15, 2)
+  commissionRate        Decimal       @db.Decimal(5, 2)
+  commissionAmount      Decimal       @db.Decimal(15, 2)
+  paymentMethod         PaymentMethod
+  downPayment           Decimal?      @db.Decimal(15, 2)
+  
+  // Status & Timeline
+  status                DealStatus    @default(DRAFT)
+  submittedAt           DateTime?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  approvedBy            String?
+  rejectedBy            String?
+  
+  // Documentation
+  documents             String[]      @default([])
+  brokerNotes           String?
+  adminNotes            String?
+  rejectionReason       String?
+  specialTerms          String?
+  
+  // Deal Properties
+  urgentDeal            Boolean       @default(false)
+  expectedClosingDate   DateTime?
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  // Commission Source
+  commissionSource      String?       // which commission structure was used
+  unitDetailId          String?       // link to specific unit detail
+
+  // Relations
+  broker        BrokerUser  @relation(fields: [brokerId], references: [id])
+  project       Project     @relation(fields: [projectId], references: [id])
+  unit          Unit?       @relation(fields: [unitId], references: [id])
+  commissions   Commission[]
+  approvedByAdmin AdminUser? @relation("AdminApprovedDeal", fields: [approvedBy], references: [id])
+  rejectedByAdmin AdminUser? @relation("AdminRejectedDeal", fields: [rejectedBy], references: [id])
+
+  @@map("deals")
+}
+
+model Commission {
+  id                        String           @id @default(uuid())
+  dealId                    String
+  brokerId                  String
+  
+  // Financial Details
+  dealValue                 Decimal          @db.Decimal(15, 2)
+  commissionRate            Decimal          @db.Decimal(5, 2)
+  grossCommission           Decimal          @db.Decimal(15, 2)
+  
+  // Enhanced Commission Structure
+  actualCommissionRate      Decimal?         @db.Decimal(5, 2)
+  brokerCommissionRate      Decimal?         @db.Decimal(5, 2)
+  platformMarginRate        Decimal?         @db.Decimal(5, 2)
+  
+  // Commission Breakdown
+  developerCommissionAmount Decimal?         @db.Decimal(15, 2) // what developer pays
+  brokerCommissionAmount    Decimal?         @db.Decimal(15, 2) // what broker receives
+  platformRevenue           Decimal?         @db.Decimal(15, 2) // platform's share
+  
+  // Deductions
+  platformFee               Decimal?         @db.Decimal(15, 2)
+  taxDeduction              Decimal?         @db.Decimal(15, 2)
+  otherDeductions           Decimal?         @db.Decimal(15, 2)
+  netCommission             Decimal          @db.Decimal(15, 2) // final amount after deductions
+  
+  // Status & Processing
+  status                    CommissionStatus @default(CALCULATED)
+  calculatedAt              DateTime         @default(now())
+  approvedAt                DateTime?
+  paidAt                    DateTime?
+  
+  // Developer Payment Tracking
+  developerPaidAt           DateTime?
+  developerPaymentReference String?
+  
+  // Commission Source
+  commissionSourceType      String?          // PROJECT_LEVEL, CATEGORY_LEVEL, UNIT_TYPE_LEVEL
+  
+  // Processing Information
+  processedBy               String?
+  paymentMethod             String?
+  paymentReference          String?
+  paymentNotes              String?
+  
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+
+  // Relations
+  deal   Deal       @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  broker BrokerUser @relation(fields: [brokerId], references: [id])
+
+  @@map("commissions")
+}
+
+// ================================
+// AUDIT & SYSTEM TABLES
+// ================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  userType    String   // ADMIN, BROKER
+  action      String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entity      String   // DEVELOPER, PROJECT, DEAL, etc.
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
